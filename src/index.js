@@ -1,32 +1,7 @@
 const { Client, Databases } = require('node-appwrite');
 
-interface Place {
-  name: string;
-  description?: string;
-  image?: string;
-  address?: string;
-  category?: string;
-  category_id?: string;
-  latitude: number;
-  longitude: number;
-  $id?: string;
-}
-
-interface Input {
-  latitude: number;
-  longitude: number;
-  zoom: number;
-}
-
-interface OutputPlace {
-  name: string;
-  latitude: number;
-  longitude: number;
-  $id?: string;
-}
-
 // --- Haversine formula ---
-function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function haversineDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // Earth radius in km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
@@ -39,17 +14,13 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 // --- Convert zoom to radius (km) ---
-function zoomToRadius(zoom: number): number {
-  // Approximate: radius = 156543.03392 * cos(latitude * PI/180) / (2^zoom) in meters at equator
-  // We'll use a fixed latitude for radius estimation (worst case)
-  // At zoom 10: ~78km, zoom 12: ~20km, zoom 14: ~5km
-  // We'll use: radius_km = 40000 / 2^(zoom-1) (Earth circumference / 2^(zoom-1))
+function zoomToRadius(zoom) {
   if (zoom < 10) return 0;
   return 40000 / Math.pow(2, zoom - 1); // in km
 }
 
 // --- Validate input ---
-function validateInput(input: any): Input {
+function validateInput(input) {
   if (
     typeof input !== 'object' ||
     typeof input.latitude !== 'number' ||
@@ -61,11 +32,11 @@ function validateInput(input: any): Input {
   if (input.zoom < 10) {
     throw new Error('Zoom must be at least 10.');
   }
-  return input as Input;
+  return input;
 }
 
 // --- Main handler ---
-export default async function main({ req, res, log, error }: any) {
+module.exports = async function main({ req, res, log, error }) {
   try {
     const input = validateInput(req.body ? JSON.parse(req.body) : {});
     const radius = zoomToRadius(input.zoom);
@@ -83,17 +54,12 @@ export default async function main({ req, res, log, error }: any) {
     // Fetch all places (up to 500, filter in-memory)
     const dbId = 'places';
     const collectionId = 'place';
-    const limit = 500;
-    let documents: Place[] = [];
+    let documents = [];
     let offset = 0;
     let total = 0;
     do {
-      const response = await databases.listDocuments(dbId, collectionId, [
-        // No geo-query, so fetch all and filter
-        // Query.limit(limit),
-        // Query.offset(offset),
-      ]);
-      documents = documents.concat(response.documents as Place[]);
+      const response = await databases.listDocuments(dbId, collectionId, []);
+      documents = documents.concat(response.documents);
       total = response.total;
       offset += response.documents.length;
     } while (documents.length < total && offset < 1000); // hard cap
@@ -110,8 +76,8 @@ export default async function main({ req, res, log, error }: any) {
       .map(({ name, latitude, longitude, $id }) => ({ name, latitude, longitude, $id }));
 
     return res.json(filtered);
-  } catch (err: any) {
+  } catch (err) {
     error(err.message || 'Unknown error');
     return res.json({ error: err.message || 'Unknown error' }, 400);
   }
-} 
+}; 
