@@ -36,7 +36,8 @@ function validateInput(input) {
 }
 
 // --- Main handler ---
-module.exports = async function main({ req, res, log, error }) {
+module.exports = async function (context) {
+  const { req, res, log, error } = context;
   try {
     const input = validateInput(req.body ? JSON.parse(req.body) : {});
     const radius = zoomToRadius(input.zoom);
