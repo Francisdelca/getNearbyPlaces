@@ -1,4 +1,4 @@
-import { Client, Databases } from '@appwrite/sdk';
+import { Client, Databases } from 'node-appwrite';
 
 interface Place {
   name: string;
