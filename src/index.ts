@@ -1,4 +1,4 @@
-import { Client, Databases } from 'node-appwrite';
+const { Client, Databases } = require('node-appwrite');
 
 interface Place {
   name: string;
